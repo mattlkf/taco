@@ -27,6 +27,7 @@
 #include "taco/linalg_notation/linalg_notation_nodes_abstract.h"
 
 #include "taco/tensor.h"
+#include "taco/linalg.h"
 
 namespace taco {
 
@@ -47,6 +48,7 @@ class LinalgAssignment;
 class Access;
 
 struct LinalgVarNode;
+struct LinalgBaseNode;
 struct LinalgLiteralNode;
 struct LinalgNegNode;
 struct LinalgTransposeNode;
@@ -59,6 +61,7 @@ struct LinalgUnaryExprNode;
 struct LinalgBinaryExprNode;
 
 class LinalgExprVisitorStrict;
+class LinalgBase;
 
 
 class LinalgExpr : public util::IntrusivePtr<const LinalgExprNode> {
@@ -74,6 +77,7 @@ public:
   LinalgExpr(TensorVar);
 
   LinalgExpr(TensorVar, TensorBase* tensorBase);
+  LinalgExpr(TensorVar, LinalgBase* linalgBase);
 
   /// Consturct an integer literal.
   /// ```

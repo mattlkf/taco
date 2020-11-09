@@ -17,7 +17,7 @@ LinalgBase::LinalgBase(string name, Type tensorType) : name(name), tensorType(te
   LinalgExpr(TensorVar(name, tensorType)) {
 }
 
-LinalgBase::LinalgBase(string name, Type tensorType, Datatype dtype, std::vector<size_t> dims, Format format) : LinalgExpr(TensorVar(name, tensorType, format)), name(name), tensorType(tensorType) {
+LinalgBase::LinalgBase(string name, Type tensorType, Datatype dtype, std::vector<size_t> dims, Format format) : LinalgExpr(TensorVar(name, tensorType, format), this), name(name), tensorType(tensorType) {
 
 }
 LinalgBase::LinalgBase(string name, Type tensorType, Format format) : LinalgExpr(TensorVar(name, tensorType, format)), name(name), tensorType(tensorType) {

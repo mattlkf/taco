@@ -15,8 +15,10 @@
 #include "taco/linalg_notation/linalg_notation_visitor.h"
 
 #include "taco/tensor.h"
+#include "taco/linalg.h"
 
 namespace taco {
+  /* class LinalgBase; */
 
 
   struct LinalgVarNode : public LinalgExprNode {
@@ -32,9 +34,9 @@ namespace taco {
     TensorVar tensorVar;
   };
 
-  struct LinalgTensorBaseNode : public LinalgExprNode {
-    LinalgTensorBaseNode(TensorVar tensorVar, TensorBase *tensorBase)
-      : LinalgExprNode(tensorVar.getType().getDataType()), tensorVar(tensorVar), tensorBase(tensorBase) {}
+  struct LinalgBaseNode: public LinalgExprNode {
+    LinalgBaseNode(TensorVar tensorVar, LinalgBase *linalgBase)
+      : LinalgExprNode(tensorVar.getType().getDataType()), tensorVar(tensorVar), linalgBase(linalgBase) {}
 
     void accept(LinalgExprVisitorStrict* v) const override {
       v->visit(this);
@@ -43,8 +45,22 @@ namespace taco {
     virtual void setAssignment(const LinalgAssignment& assignment) {}
 
     TensorVar tensorVar;
-    TensorBase* tensorBase;
+    LinalgBase* linalgBase;
   };
+
+  /* struct LinalgTensorBaseNode : public LinalgExprNode { */
+  /*   LinalgTensorBaseNode(TensorVar tensorVar, TensorBase *tensorBase) */
+  /*     : LinalgExprNode(tensorVar.getType().getDataType()), tensorVar(tensorVar), tensorBase(tensorBase) {} */
+
+  /*   void accept(LinalgExprVisitorStrict* v) const override { */
+  /*     v->visit(this); */
+  /*   } */
+
+  /*   virtual void setAssignment(const LinalgAssignment& assignment) {} */
+
+  /*   TensorVar tensorVar; */
+  /*   TensorBase* tensorBase; */
+  /* }; */
 
   struct LinalgLiteralNode : public LinalgExprNode {
     template <typename T> LinalgLiteralNode(T val) : LinalgExprNode(type<T>()) {

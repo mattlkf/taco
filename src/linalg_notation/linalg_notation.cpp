@@ -30,6 +30,8 @@
 #include "taco/util/strings.h"
 #include "taco/util/collections.h"
 
+#include "taco/linalg.h"
+
 using namespace std;
 
 namespace taco {
@@ -37,8 +39,10 @@ namespace taco {
 LinalgExpr::LinalgExpr(TensorVar var) : LinalgExpr(new LinalgVarNode(var)) {
 }
 
-LinalgExpr::LinalgExpr(TensorVar var, TensorBase* tensorBase) : LinalgExpr(new LinalgTensorBaseNode(var, tensorBase)) {
-}
+/* LinalgExpr::LinalgExpr(TensorVar var, TensorBase* tensorBase) : LinalgExpr(new LinalgTensorBaseNode(var, tensorBase)) { */
+/* } */
+
+LinalgExpr::LinalgExpr(TensorVar var, LinalgBase* linalgBase) : LinalgExpr(new LinalgBaseNode(var, linalgBase)) {
 
 LinalgExpr::LinalgExpr(char val) : LinalgExpr(new LinalgLiteralNode(val)) {
 }
