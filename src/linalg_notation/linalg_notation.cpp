@@ -193,7 +193,6 @@ LinalgExpr elemMul(const LinalgExpr &lhs, const LinalgExpr &rhs) {
 }
 
 LinalgExpr transpose(const LinalgExpr &lhs) {
-  cout << "transpose here" << endl;
   return new LinalgTransposeNode(lhs, !lhs.isColVector());
 }
 

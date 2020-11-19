@@ -78,19 +78,19 @@ const TensorBase& LinalgParser::getResultTensor() const {
 
 LinalgBase LinalgParser::parseAssign() {
   content->parsingLhs = true;
-  cout << "parsing lhs" << endl;
+  //cout << "parsing lhs" << endl;
   LinalgBase lhs = parseVar();
-  cout << "end parsing lhs" << endl;
+  //cout << "end parsing lhs" << endl;
   const TensorVar var = lhs.tensorBase->getTensorVar();
-  cout << "Result of parsing LHS" << endl;
-  cout << var.getName() << endl;
+  //cout << "Result of parsing LHS" << endl;
+  //cout << var.getName() << endl;
   content->parsingLhs = false;
 
-  cout << "parsing rhs" << endl;
+  //cout << "parsing rhs" << endl;
   consume(Token::eq);
   LinalgExpr rhs = parseExpr();
-  cout << "Result of parsing RHS" << endl;
-  cout << rhs << endl;
+  //cout << "Result of parsing RHS" << endl;
+  //cout << rhs << endl;
   lhs = rhs;
 
   return lhs;
