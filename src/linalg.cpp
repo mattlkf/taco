@@ -15,9 +15,10 @@ LinalgBase::LinalgBase(string name, Type tensorType, bool isColVec) : name(name)
 LinalgBase::LinalgBase(string name, Type tensorType, Datatype dtype, std::vector<int> dims, Format format, bool isColVec) :
   LinalgExpr(TensorVar(name, tensorType, format), isColVec, new TensorBase(name, dtype, dims, format)), name(name),
   tensorType(tensorType), idxcount(0) {
+    cout << "LinalgBase for " << tensorBase->getName() << " constructed" << endl;
     if(isa<LinalgTensorBaseNode>(ptr)) {
       /* cout << "LinalgBase constructor - LinalgTensorBaseNode" << endl; */
-      cout << this->tensorBase->getName() << endl;
+      /* cout << this->tensorBase->getName() << endl; */
     }
 }
 
@@ -27,21 +28,20 @@ LinalgBase::LinalgBase(string name, Type tensorType, Format format, bool isColVe
 
 
 LinalgAssignment LinalgBase::operator=(const LinalgExpr& expr) {
-  /* cout << "LinalgBase operator= on " << name << endl; */
+  cout << endl;
+  cout << "LinalgBase operator= on " << name << " with order " << expr.getOrder() << endl;
   taco_iassert(isa<LinalgVarNode>(this->ptr));
   TensorVar var = to<LinalgVarNode>(this->get())->tensorVar;
 
-  cout << var.getOrder() << endl;
-  cout << expr.getOrder() << endl;
   taco_uassert(var.getOrder() == expr.getOrder()) << "RHS and LHS of linalg assignment must match order";
   if (var.getOrder() == 1)
     taco_uassert(this->isColVector() == expr.isColVector()) << "RHS and LHS of linalg assignment must match vector type";
 
   LinalgAssignment assignment = LinalgAssignment(var, expr);
   this->assignment = assignment;
-  cout << "rewrite here" << endl;
+  cout << "LinalgBase operator= initiating rewrite" << endl;
   this->rewrite();
-  cout << "end rewrite" << endl;
+  cout << "Rewrite complete" << endl;
   return assignment;
 }
 
@@ -75,6 +75,11 @@ IndexVar LinalgBase::getUniqueIndex() {
 }
 
 IndexExpr LinalgBase::rewrite(LinalgExpr linalg, vector<IndexVar> indices) {
+  cout << "Propagate indices: ";
+  for (const IndexVar& ind : indices) {
+    cout << ind << " ";
+  }
+  cout << endl;
   if (isa<LinalgSubNode>(linalg.get())) {
     auto sub = to<LinalgSubNode>(linalg.get());
     IndexExpr indexA = rewrite(sub->a, indices);
@@ -218,13 +223,15 @@ IndexStmt LinalgBase::rewrite() {
     }
     Access lhs = Access(tensor, indices);
     IndexExpr rhs = rewrite(this->assignment.getRhs(), indices);
-    cout << "rhs done here" << endl;
+    /* cout << "rhs done here" << endl; */
 
     if(this->tensorBase != nullptr) {
-       cout << "--- Going to use the Tensor API to assign the RHS ---" << endl;
-       cout << rhs << endl;
-       this->tensorBase->operator()(indices) = rhs;
-       cout << "--- Done assigning RHS to Tensor API ---" << endl;
+      cout << endl;
+      cout << "LHS is assignable, going to use the Tensor API to assign the RHS" << endl;
+      /* cout << "--- Going to use the Tensor API to assign the RHS ---" << endl; */
+      /* cout << rhs << endl; */
+      this->tensorBase->operator()(indices) = rhs;
+      cout << "Done assigning the RHS to the LHS via Tensor API" << endl;
     }
 
     Assignment indexAssign = Assignment(lhs, rhs);

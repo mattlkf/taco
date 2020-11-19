@@ -88,6 +88,7 @@ public:
   // And a Write method
   void insert(int coord_x, int coord_y, CType value);
 
+  void insert(std::initializer_list<int>& coords, CType value);
 
 };
 
@@ -131,7 +132,14 @@ CType Matrix<CType>::at(int coord_x, int coord_y) {
 // Definition of Write methods
 template <typename CType>
 void Matrix<CType>::insert(int coord_x, int coord_y, CType value) {
+  std::cout << "Matrix::insert" << std::endl;
   tensorBase->insert({coord_x, coord_y}, value);
+}
+
+template <typename CType>
+void Matrix<CType>::insert(std::initializer_list<int>& coords, CType value) {
+  std::cout << "Matrix::insert" << std::endl;
+  tensorBase->insert(coords, value);
 }
 
 // ------------------------------------------------------------

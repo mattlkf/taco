@@ -194,7 +194,7 @@ LinalgBase LinalgParser::parseVar() {
     throw ParseError("Expected linalg name");
   }
   string tensorName = content->lexer.getIdentifier();
-  cout << tensorName << endl;
+  /* cout << tensorName << endl; */
   consume(Token::identifier);
   names.push_back(tensorName);
 
@@ -205,7 +205,7 @@ LinalgBase LinalgParser::parseVar() {
   } else {
     order = 1;
   }
-  cout << order << endl;
+  /* cout << order << endl; */
 
   Format format;
   if (util::contains(content->formats, tensorName)) {
@@ -214,7 +214,7 @@ LinalgBase LinalgParser::parseVar() {
   else {
     format = Format(std::vector<ModeFormatPack>(order, Dense));
   }
-  cout << format << endl;
+  /* cout << format << endl; */
 
   TensorBase tensor;
   if (util::contains(content->tensors, tensorName)) {
@@ -224,12 +224,12 @@ LinalgBase LinalgParser::parseVar() {
     vector<int> tensorDimensions(order);
     vector<bool> modesWithDefaults(order, false);
     for (size_t i = 0; i < tensorDimensions.size(); i++) {
-      cout << i << endl;
+      /* cout << i << endl; */
       if (util::contains(content->tensorDimensions, tensorName)) {
         tensorDimensions[i] = content->tensorDimensions.at(tensorName)[i];
       }
       else {
-        cout << "default" << endl;
+        /* cout << "default" << endl; */
         tensorDimensions[i] = content->defaultDimension;
         modesWithDefaults[i] = true;
       }
@@ -239,7 +239,7 @@ LinalgBase LinalgParser::parseVar() {
       dataType = content->dataTypes.at(tensorName);
     }
     tensor = TensorBase(tensorName,dataType,tensorDimensions,format);
-    cout << tensor << endl;
+    /* cout << tensor << endl; */
     for (size_t i = 0; i < tensorDimensions.size(); i++) {
       if (modesWithDefaults[i]) {
         content->modesWithDefaults.insert({tensor.getTensorVar(), i});
@@ -254,11 +254,11 @@ LinalgBase LinalgParser::parseVar() {
 vector<IndexVar> LinalgParser::getUniqueIndices(size_t order) {
     vector<IndexVar> result;
     for (int i = idxcount; i < (idxcount + (int)order); i++) {
-      cout << i << ": ";
+      /* cout << i << ": "; */
       string name = "i" + to_string(i);
-      cout << name << " ";
+      /* cout << name << " "; */
       IndexVar indexVar = getIndexVar(name);
-      cout << indexVar << endl;
+      /* cout << indexVar << endl; */
       result.push_back(indexVar);
     }
     idxcount += order;

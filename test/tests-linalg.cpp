@@ -1,8 +1,61 @@
 #include "test.h"
+#include <stdio.h>
 
 #include "taco/linalg.h"
 
 using namespace taco;
+
+void wait() {
+  scanf("%*c");
+}
+
+// Note: run with ./bin/taco-test linalg.demo | sed -e/*linalg.demo*/\{ -e:1 -en\;b1 -e\} -ed
+TEST(linalg, demo) {
+  cout << "--- Starting demo (press ENTER to continue) ---" << endl;
+
+  wait();
+
+  cout << "--- Before constructing Matrices ---" << endl;
+  Matrix<double> B("B", 2, 2, dense, dense);
+  Matrix<double> C("C", 2, 2, dense, dense);
+  Matrix<double> A("A", 2, 2, dense, dense);
+  cout << "--- After constructing Matrices ---" << endl;
+
+  wait();
+
+  cout << "--- Before inserting ---" << endl;
+  B.insert(0,0,2);
+  B.insert(1,1,1);
+  B.insert(0,1,2);
+
+  C.insert(0,0,2);
+  C.insert(1,1,2);
+  cout << "--- After inserting ---" << endl;
+
+  wait();
+
+  cout << "--- Before an unassigned expression ---" << endl;
+  B * C;
+  cout << "--- After an unassigned expression ---" << endl;
+
+  wait();
+
+  cout << "--- Before Expression ---" << endl;
+  A = B * C;
+  cout << "--- After Expression ---" << endl;
+
+  wait();
+
+  cout << "--- Before getIndexAssignment on A ---" << endl;
+  cout << A.getIndexAssignment() << endl;
+  cout << "--- After getIndexAssignment on A ---" << endl;
+
+  wait();
+
+  cout << "--- Before printing A ---" << endl;
+  cout << A << endl;
+  cout << "--- After printing A ---" << endl;
+}
 
 TEST(linalg, matmul) {
   Matrix<double> B("B", 2, 2, dense, dense);

@@ -884,6 +884,7 @@ TensorBase::TensorBase(CType val) : TensorBase(type<CType>()) {
 
 template <typename CType>
 void TensorBase::insert(const std::initializer_list<int>& coordinate, CType value) {
+  std::cout << "\t" << "TensorBase::insert" << std::endl;
   taco_uassert(coordinate.size() == (size_t)getOrder()) <<
   "Wrong number of indices";
   taco_uassert(getComponentType() == type<CType>()) <<

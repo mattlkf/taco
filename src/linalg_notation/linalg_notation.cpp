@@ -127,6 +127,7 @@ LinalgExpr operator-(const LinalgExpr &lhs, const LinalgExpr &rhs) {
 }
 
 LinalgExpr operator*(const LinalgExpr &lhs, const LinalgExpr &rhs) {
+  std::cout << "Operator * with LHS order=" << lhs.getOrder() << " and RHS order=" << rhs.getOrder() << std::endl;
   int order = 0;
   bool isColVec = false;
   // Matrix-matrix mult

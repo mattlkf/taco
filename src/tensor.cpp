@@ -107,6 +107,8 @@ TensorBase::TensorBase(string name, Datatype ctype, vector<int> dimensions,
   taco_uassert((size_t)format.getOrder() == dimensions.size()) <<
       "The number of format mode types (" << format.getOrder() << ") " <<
       "must match the tensor order (" << dimensions.size() << ").";
+  
+  cout << "\tTensorBase constructor" << endl;
 
   content->allocSize = 1 << 20;
 
@@ -487,7 +489,7 @@ struct AccessTensorNode : public AccessNode {
 };
 
 const Access TensorBase::operator()(const std::vector<IndexVar>& indices) const {
-  cout << "Const op() call" << endl;
+  /* cout << "Const op() call" << endl; */
   taco_uassert(indices.size() == (size_t)getOrder())
       << "A tensor of order " << getOrder() << " must be indexed with "
       << getOrder() << " variables, but is indexed with:  "
@@ -496,14 +498,22 @@ const Access TensorBase::operator()(const std::vector<IndexVar>& indices) const 
 }
 
 Access TensorBase::operator()(const std::vector<IndexVar>& indices) {
-  cout << "Non-Const op() call" << endl;
-  cout << to_string(getOrder()) << endl;
-  cout << " after getOrder" << endl;
+  cout << getName() << "'s TensorBase::operator() called with indices (";
+  bool comma = false;
+  for(const IndexVar& idx : indices) {
+    if (comma) cout << ", ";
+    cout << idx;
+    comma = true;
+  }
+  cout << ")" << endl;
+  /* cout << "Non-Const op() call" << endl; */
+  /* cout << to_string(getOrder()) << endl; */
+  /* cout << " after getOrder" << endl; */
   taco_uassert(indices.size() == (size_t)getOrder())
       << "A tensor of order " << getOrder() << " must be indexed with "
       << getOrder() << " variables, but is indexed with:  "
       << util::join(indices);
-  cout << " after uassert" << endl;
+  /* cout << " after uassert" << endl; */
   return Access(new AccessTensorNode(*this, indices));
 }
 
@@ -740,6 +750,7 @@ void TensorBase::evaluate() {
 }
 
 void TensorBase::operator=(const IndexExpr& expr) {
+  std::cout << "\t" << getName() << "'s TensorBase::operator= called" << std::endl;
   taco_uassert(getOrder() == 0)
       << "Must use index variable on the left-hand-side when assigning an "
       << "expression to a non-scalar tensor.";
@@ -1033,18 +1044,19 @@ bool operator>=(const TensorBase& a, const TensorBase& b) {
 }
 
 ostream& operator<<(ostream& os, const TensorBase& tensor) {
+  os << "\tPrinting TensorBase Storage for constant " << tensor.getName() << endl;
   vector<string> dimensionStrings;
   for (int dimension : tensor.getDimensions()) {
     dimensionStrings.push_back(to_string(dimension));
   }
-  os << tensor.getName() << " (" << util::join(dimensionStrings, "x") << ") "
-     << tensor.getFormat() << ":" << std::endl;
+  /* os << tensor.getName() << " (" << util::join(dimensionStrings, "x") << ") " */
+     /* << tensor.getFormat() << ":" << std::endl; */
 
   // Print coordinates
   size_t numCoordinates = tensor.content->coordinateBufferUsed / tensor.content->coordinateSize;
   for (size_t i = 0; i < numCoordinates; i++) {
     int* ptr = (int*)&tensor.content->coordinateBuffer->data()[i * tensor.content->coordinateSize];
-    os << "(" << util::join(ptr, ptr+tensor.getOrder()) << "): ";
+    /* os << "(" << util::join(ptr, ptr+tensor.getOrder()) << "): "; */
     switch(tensor.getComponentType().getKind()) {
       case Datatype::Bool: taco_ierror; break;
       case Datatype::UInt8: os << ((uint8_t*)(ptr+tensor.getOrder()))[0] << std::endl; break;
@@ -1072,19 +1084,20 @@ ostream& operator<<(ostream& os, const TensorBase& tensor) {
 }
 
 ostream& operator<<(ostream& os, TensorBase& tensor) {
+  os << "\tPrinting TensorBase " << tensor.getName() << endl;
   tensor.syncValues();
   vector<string> dimensionStrings;
   for (int dimension : tensor.getDimensions()) {
     dimensionStrings.push_back(to_string(dimension));
   }
-  os << tensor.getName() << " (" << util::join(dimensionStrings, "x") << ") "
-     << tensor.getFormat() << ":" << std::endl;
+  /* os << tensor.getName() << " (" << util::join(dimensionStrings, "x") << ") " */
+  /*    << tensor.getFormat() << ":" << std::endl; */
 
   // Print coordinates
   size_t numCoordinates = tensor.content->coordinateBufferUsed / tensor.content->coordinateSize;
   for (size_t i = 0; i < numCoordinates; i++) {
     int* ptr = (int*)&tensor.content->coordinateBuffer->data()[i*tensor.content->coordinateSize];
-    os << "(" << util::join(ptr, ptr+tensor.getOrder()) << "): ";
+    /* os << "(" << util::join(ptr, ptr+tensor.getOrder()) << "): "; */
     switch(tensor.getComponentType().getKind()) {
       case Datatype::Bool: taco_ierror; break;
       case Datatype::UInt8: os << ((uint8_t*)(ptr+tensor.getOrder()))[0] << std::endl; break;
