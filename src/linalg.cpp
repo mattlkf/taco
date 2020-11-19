@@ -22,6 +22,15 @@ LinalgBase::LinalgBase(string name, Type tensorType, Datatype dtype, std::vector
     }
 }
 
+LinalgBase::LinalgBase(TensorBase* tbase, bool isColVec) :
+  LinalgExpr(tbase, isColVec), name(tbase->getName()),
+  tensorType(tbase->getTensorVar().getType()), idxcount(0) {
+  if(isa<LinalgTensorBaseNode>(ptr)) {
+    /* cout << "LinalgBase constructor - LinalgTensorBaseNode" << endl; */
+    cout << this->tensorBase->getName() << endl;
+  }
+}
+
 LinalgBase::LinalgBase(string name, Type tensorType, Format format, bool isColVec) : name(name), tensorType(tensorType),
   idxcount(0), LinalgExpr(TensorVar(name, tensorType, format), isColVec) {
 }
@@ -33,7 +42,8 @@ LinalgAssignment LinalgBase::operator=(const LinalgExpr& expr) {
   taco_iassert(isa<LinalgVarNode>(this->ptr));
   TensorVar var = to<LinalgVarNode>(this->get())->tensorVar;
 
-  taco_uassert(var.getOrder() == expr.getOrder()) << "RHS and LHS of linalg assignment must match order";
+  taco_uassert(var.getOrder() == expr.getOrder()) << "LHS (" << var.getOrder() << ") and RHS (" << expr.getOrder()
+                                                      << ") of linalg assignment must match order";
   if (var.getOrder() == 1)
     taco_uassert(this->isColVector() == expr.isColVector()) << "RHS and LHS of linalg assignment must match vector type";
 
@@ -115,6 +125,12 @@ IndexExpr LinalgBase::rewrite(LinalgExpr linalg, vector<IndexVar> indices) {
     else if (mul->a.getOrder() == 1 && mul->a.isColVector() && mul->b.getOrder() == 1) {
       indicesA = {indices[0]};
       indicesB = {indices[1]};
+    } else if (mul->a.getOrder() == 0) {
+      indicesA = {};
+      indicesB = indices;
+    } else if (mul->b.getOrder() == 0) {
+      indicesA = indices;
+      indicesB = {};
     } else {
       indicesA = {index};
       indicesB = {index};

@@ -35,6 +35,10 @@ LinalgExpr::LinalgExpr(TensorVar var, bool isColVec, TensorBase* _tensorBase) : 
   tensorBase = _tensorBase;
 }
 
+LinalgExpr::LinalgExpr(TensorBase* _tensorBase, bool isColVec) : LinalgExpr(new LinalgTensorBaseNode(_tensorBase->getTensorVar(), _tensorBase, isColVec)) {
+
+}
+
 LinalgExpr::LinalgExpr(TensorVar var, bool isColVec) : LinalgExpr(new LinalgVarNode(var, isColVec)) {
 }
 
@@ -105,8 +109,9 @@ std::ostream& operator<<(std::ostream& os, const LinalgExpr& expr) {
 }
 
 void checkCompatibleShape(const LinalgExpr &lhs, const LinalgExpr &rhs) {
-  taco_uassert(lhs.getOrder() == rhs.getOrder()) << "RHS and LHS order do not match for linear algebra "
-                                                    "binary operation" << endl;
+  if (lhs.getOrder() != 0 && rhs.getOrder() != 0)
+    taco_uassert(lhs.getOrder() == rhs.getOrder()) << "RHS and LHS order do not match for linear algebra "
+                                                      "binary operation" << endl;
   if (lhs.getOrder() == 1)
     taco_uassert(lhs.isColVector() == rhs.isColVector()) << "RHS and LHS vector type do not match for linear algebra "
                                                             "binary operation" << endl;
@@ -118,11 +123,15 @@ LinalgExpr operator-(const LinalgExpr &expr) {
 
 LinalgExpr operator+(const LinalgExpr &lhs, const LinalgExpr &rhs) {
   checkCompatibleShape(lhs, rhs);
+  if (lhs.getOrder() == 0)
+    return new LinalgAddNode(lhs, rhs, rhs.getOrder(), rhs.isColVector());
   return new LinalgAddNode(lhs, rhs, lhs.getOrder(), lhs.isColVector());
 }
 
 LinalgExpr operator-(const LinalgExpr &lhs, const LinalgExpr &rhs) {
   checkCompatibleShape(lhs, rhs);
+  if (lhs.getOrder() == 0)
+    return new LinalgSubNode(lhs, rhs, rhs.getOrder(), rhs.isColVector());
   return new LinalgSubNode(lhs, rhs, lhs.getOrder(), lhs.isColVector());
 }
 
@@ -151,8 +160,19 @@ LinalgExpr operator*(const LinalgExpr &lhs, const LinalgExpr &rhs) {
   else if (lhs.getOrder() == 1 && lhs.isColVector() && rhs.getOrder() == 1 && !rhs.isColVector()) {
     order = 2;
   }
+  // Scalar product
+  else if (lhs.getOrder() == 0) {
+    order = rhs.getOrder();
+    isColVec = rhs.isColVector();
+  }
+  else if (rhs.getOrder() == 0) {
+    order = lhs.getOrder();
+    isColVec = lhs.isColVector();
+  }
   else {
-    taco_uassert(lhs.getOrder() != rhs.getOrder()) << "RHS and LHS order/vector type do not match "
+    taco_uassert(lhs.getOrder() != rhs.getOrder()) << "LHS (" << lhs.getOrder() << "," << lhs.isColVector()
+                                                      << ") and RHS (" << rhs.getOrder() << "," << rhs.isColVector()
+                                                      << ") order/vector type do not match "
                                                       "for linear algebra matrix multiply" << endl;
   }
   return new LinalgMatMulNode(lhs, rhs, order, isColVec);
@@ -160,11 +180,15 @@ LinalgExpr operator*(const LinalgExpr &lhs, const LinalgExpr &rhs) {
 
 LinalgExpr operator/(const LinalgExpr &lhs, const LinalgExpr &rhs) {
   checkCompatibleShape(lhs, rhs);
+  if (lhs.getOrder() == 0)
+    return new LinalgDivNode(lhs, rhs, rhs.getOrder(), rhs.isColVector());
   return new LinalgDivNode(lhs, rhs, lhs.getOrder(), lhs.isColVector());
 }
 
 LinalgExpr elemMul(const LinalgExpr &lhs, const LinalgExpr &rhs) {
   checkCompatibleShape(lhs, rhs);
+  if (lhs.getOrder() == 0)
+    return new LinalgElemMulNode(lhs, rhs, rhs.getOrder(), rhs.isColVector());
   return new LinalgElemMulNode(lhs, rhs, lhs.getOrder(), lhs.isColVector());
 }
 

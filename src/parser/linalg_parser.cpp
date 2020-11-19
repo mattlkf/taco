@@ -38,6 +38,8 @@ struct LinalgParser::Content {
   bool parsingLhs = false;
 
   map<string,IndexVar> indexVars;
+  std::map<string,int> linalgShapes;
+  std::map<string,bool> linalgVecShapes;
 
   TensorBase             resultTensor;
   map<string,TensorBase> tensors;
@@ -47,6 +49,7 @@ struct LinalgParser::Content {
                  const map<string,Datatype>& dataTypes,
                  const map<string,std::vector<int>>& tensorDimensions,
                  const std::map<std::string,TensorBase>& tensors,
+                 const std::map<string,int>& linalgShapes, const std::map<string,bool>& linalgVecShapes,
                  int defaultDimension)
     : content(new LinalgParser::Content) {
     content->lexer = Lexer(expression);
@@ -56,26 +59,31 @@ struct LinalgParser::Content {
     content->tensors = tensors;
     content->dataTypes = dataTypes;
 
+    content->linalgShapes = linalgShapes;
+    content->linalgVecShapes = linalgVecShapes;
     idxcount = 0;
 
     nextToken();
   }
 
 void LinalgParser::parse() {
-    content->resultTensor = parseAssign().getLhs();
+    LinalgBase linalgBase = parseAssign();
+    linalgBase.rewrite();
+    content->resultTensor = *linalgBase.tensorBase;
 }
 
 const TensorBase& LinalgParser::getResultTensor() const {
     return content->resultTensor;
 }
 
-LinalgAssignment LinalgParser::parseAssign() {
+LinalgBase LinalgParser::parseAssign() {
   content->parsingLhs = true;
   cout << "parsing lhs" << endl;
-  LinalgExpr lhs = parseVar();
-  const TensorVar var = to<LinalgVarNode>(lhs.get())->tensorVar;
+  LinalgBase lhs = parseVar();
+  cout << "end parsing lhs" << endl;
+  const TensorVar var = lhs.tensorBase->getTensorVar();
   cout << "Result of parsing LHS" << endl;
-  cout << lhs << endl;
+  cout << var.getName() << endl;
   content->parsingLhs = false;
 
   cout << "parsing rhs" << endl;
@@ -83,8 +91,9 @@ LinalgAssignment LinalgParser::parseAssign() {
   LinalgExpr rhs = parseExpr();
   cout << "Result of parsing RHS" << endl;
   cout << rhs << endl;
+  lhs = rhs;
 
-  return LinalgAssignment(var, rhs);
+  return lhs;
 }
 
 LinalgExpr LinalgParser::parseExpr() {
@@ -108,6 +117,8 @@ LinalgExpr LinalgParser::parseExpr() {
 }
 
 LinalgExpr LinalgParser::parseTerm() {
+
+
   LinalgExpr term = parseFactor();
   while (content->currentToken == Token::mul ||
          content->currentToken == Token::div) {
@@ -122,6 +133,7 @@ LinalgExpr LinalgParser::parseTerm() {
         term = term / parseFactor();
         break;
       }
+
       default:
         taco_unreachable;
     }
@@ -137,19 +149,29 @@ LinalgExpr LinalgParser::parseFactor() {
       consume(Token::rparen);
       return factor;
     }
-    case Token::sub:
+    case Token::sub: {
       consume(Token::sub);
-      return new LinalgNegNode(parseFactor());
+      return -parseFactor();
+    }
+    case Token::transpose: {
+      consume(Token::transpose);
+      consume(Token::lparen);
+      LinalgExpr factor = parseExpr();
+      consume(Token::rparen);
+      return transpose(factor);
+    }
     default:
       break;
   }
 
-  LinalgExpr final = parseFinal();
 
   if (content->currentToken == Token::caretT) {
+    LinalgExpr factor = parseFactor();
     consume(Token::caretT);
-    return new LinalgTransposeNode(final);
+    return transpose(factor);
   }
+
+  LinalgExpr final = parseFinal();
   return final;
 }
 
@@ -185,12 +207,38 @@ LinalgExpr LinalgParser::parseFinal() {
       return LinalgExpr(float_value);
     }
     default:
-      return parseVar();
+      return parseCall();
   }
 }
 
+LinalgExpr LinalgParser::parseCall() {
+  switch (content->currentToken) {
+    case Token::elemMul: {
+      consume(Token::elemMul);
+      consume(Token::lparen);
+      LinalgExpr term = parseExpr();
+      consume(Token::comma);
+      term = elemMul(term, parseExpr());
+      consume(Token::rparen);
+      return term;
+    }
+    case Token::transpose: {
+      consume(Token::transpose);
+      consume(Token::lparen);
+      LinalgExpr term = parseExpr();
+      consume(Token::rparen);
+      return transpose(term);
+    }
+    default:
+      break;
+  }
+  return parseVar();
+}
+
 LinalgBase LinalgParser::parseVar() {
+
   if(content->currentToken != Token::identifier) {
+    cout << currentTokenString();
     throw ParseError("Expected linalg name");
   }
   string tensorName = content->lexer.getIdentifier();
@@ -199,13 +247,39 @@ LinalgBase LinalgParser::parseVar() {
   names.push_back(tensorName);
 
   size_t order = 0;
+  bool isColVec = false;
   // LinalgParser: By default assume capital variables are Matrices and lower case variables are vectors
   if (isupper(tensorName.at(0))) {
     order = 2;
   } else {
     order = 1;
+    isColVec = true;
   }
-  /* cout << order << endl; */
+
+  if (content->linalgShapes.find(tensorName) != content->linalgShapes.end()) {
+    if (content->formats.find(tensorName) != content->formats.end()) {
+      taco_uassert(content->linalgShapes.at(tensorName) == content->formats.at(tensorName).getOrder())
+        << "Linalg shape and tensor format must match" << endl;
+
+    }
+    if (content->tensorDimensions.find(tensorName) != content->tensorDimensions.end())
+      taco_uassert(content->linalgShapes.at(tensorName) == (int)content->tensorDimensions.at(tensorName).size())
+        << "Linalg shape and the number of tensor dimensions must match" << endl;
+
+    order = content->linalgShapes.at(tensorName);
+    isColVec = content->linalgVecShapes.at(tensorName);
+  }
+  else if (content->formats.find(tensorName) != content->formats.end()) {
+
+      if (content->tensorDimensions.find(tensorName) != content->tensorDimensions.end())
+          taco_uassert(content->formats.at(tensorName).getOrder() == (int)content->tensorDimensions.at(tensorName).size())
+          << "Tensor format and tensor dimensions must match" << endl;
+
+    order = content->formats.at(tensorName).getOrder();
+  } else {
+    if (content->tensorDimensions.find(tensorName) != content->tensorDimensions.end())
+      order = content->tensorDimensions.at(tensorName).size();
+  }
 
   Format format;
   if (util::contains(content->formats, tensorName)) {
@@ -239,7 +313,7 @@ LinalgBase LinalgParser::parseVar() {
       dataType = content->dataTypes.at(tensorName);
     }
     tensor = TensorBase(tensorName,dataType,tensorDimensions,format);
-    /* cout << tensor << endl; */
+
     for (size_t i = 0; i < tensorDimensions.size(); i++) {
       if (modesWithDefaults[i]) {
         content->modesWithDefaults.insert({tensor.getTensorVar(), i});
@@ -248,7 +322,10 @@ LinalgBase LinalgParser::parseVar() {
 
     content->tensors.insert({tensorName,tensor});
   }
-  return LinalgBase(tensor.getName(),tensor.getComponentType(), tensor.getFormat() );
+  LinalgBase resultLinalg(tensor.getName(), tensor.getTensorVar().getType(), tensor.getComponentType(),
+                          tensor.getDimensions(), tensor.getFormat(), isColVec);
+  return resultLinalg;
+  //return LinalgBase(tensor.getName(), tensor.getComponentType(), tensor.getFormat() );
 }
 
 vector<IndexVar> LinalgParser::getUniqueIndices(size_t order) {
