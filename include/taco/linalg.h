@@ -132,6 +132,7 @@ void Matrix<CType>::insert(int coord_x, int coord_y, CType value) {
 
 template <typename CType>
 ScalarAccess<CType> Matrix<CType>::operator()(int i, int j) {
+  std::cout << "ScalarAccess for " << i << ", " << j << std::endl;
   return ScalarAccess<CType>(tensorBase, {i, j});
 }
 
