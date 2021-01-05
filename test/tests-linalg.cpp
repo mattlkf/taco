@@ -299,55 +299,119 @@ TEST(linalg, compound_sparse_matmul_transpose_outer) {
   ASSERT_TENSOR_EQ(tA, A);
 }
 
-TEST(linalg, compound_ATCA) {
-  // WORKS
-  /* Matrix<double> A("A", 16, 16, sparse, sparse);   // Works: {dense, sparse} and {dense, dense} */
-  /* Matrix<double> B("B", 16, 16, dense, dense); */
-  /* Matrix<double> C("C", 16, 16, dense, sparse); */
+TEST(linalg, DISABLED_compound_ATCA_tensor_only) {
   // Tensor API equivalent
   Tensor<double> tA("tA", {16,16}, {sparse, sparse});
   Tensor<double> tB("tB", {16,16}, {dense, dense});
   Tensor<double> tC("tC", {16,16}, {dense, sparse});
 
-  /* cout << "After constructors" << endl; */
+  cout << "After constructors" << endl;
 
-  /* for (int i = 0; i < 16; i++) { */
-  /*   for (int j = 0; j < 16; j++) { */
-  /*     C(i, j) = i*j; */
-  /*   } */
-  /* } */
-  /* cout << "After insertion into C" << endl; */
+  IndexVar i, j, k, l;
+  cout << "Before Tensor Expression" << endl;
+  tB(i, j) = (tA(l, i) * tC(l, k)) * tA(k, j);
 
-  /* for (int i = 0; i < 16; i++) { */
-  /*   A(i, i) = i; */
-  /* } */
-  /* cout << "After insertion into A" << endl; */
+  cout << "After Tensor Expression" << endl;
 
+  cout << tB << endl;
 
+  cout << "After printing tB" << endl;
+}
 
-  /* B = (transpose(A) * C) * A; */
-  /* cout << "After linalg expression" << endl; */
-  /* cout << B.getIndexAssignment() << endl; */
-  /* cout << "After printing index assignment" << endl; */
-  /* for (int i = 0; i < 16; i++) { */
-  /*   for (int j = 0; j < 16; j++) { */
-  /*     cout << i << ", " << j << ": " << endl; */
-  /*     cout << B(i,j) << endl; */
-  /*   } */
-  /* } */
-  /* cout << "After printing B values" << endl; */
+TEST(linalg, DISABLED_compound_ATCA_tensor_loop_formats) {
+  vector<Format> formats = {CSR,CSC,COO(2),{Dense,Dense}};
+  /* vector<Format> formats = {CSR,{Dense,Dense}}; */
+  cout << "Formats being tested: " << endl;
+  for (Format f : formats) {
+    cout << f << endl;
+  }
+  
+  bool no_exceptions = true;
+  int fid = 0;
+  /* set<int> skipped_formats = {}; */
+  /* set<int> skipped_formats = {1,2,3,4,5,6,7,8}; */
+  set<int> skipped_formats = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 
-  /* for (int i = 0; i < 16; i++) { */
-  /*   for (int j = 0; j < 16; j++) { */
-  /*     tC(i, j) = i*j; */
-  /*   } */
-  /* } */
-  /* cout << "After insertion into tC" << endl; */
+  for (Format fA : formats) {
+    for (Format fB : formats) {
+      for (Format fC : formats) {
+        fid++;
+        if (skipped_formats.count(fid) != 0) continue;
 
-  /* for (int i = 0; i < 16; i++) { */
-  /*   tA(i, i) = i; */
-  /* } */
-  /* cout << "After insertion into tA" << endl; */
+        cout << "[TEST " << fid << "] " << fA << " " << fB << " " << fC << endl;
+
+        Tensor<double> tA("tA", {16,16}, fA);
+        Tensor<double> tB("tB", {16,16}, fB);
+        Tensor<double> tC("tC", {16,16}, fC);
+
+        IndexVar i, j, k, l;
+        // Often segfaults within the first 4 combinations of formats
+        tB(i, j) = (tA(l, i) * tC(l, k)) * tA(k, j);
+
+        // This also segfault occasionally, though not as often
+        /* tB(i, j) = (tA(l, i) * tC(l, j)); */
+
+        cout << "Compile" << endl;
+        tB.compile();
+
+        cout << "Assemble" << endl;
+        tB.assemble();
+        
+        cout << "Compute" << endl;
+        tB.compute();
+
+        try {
+          cout << tB << endl;
+        }
+        catch (const std::out_of_range& e) {
+          cout << "Out of range exception occurred " << e.what() << endl;
+          no_exceptions = false;
+        }
+      }
+    }
+  }
+
+  ASSERT_TRUE(no_exceptions);
+}
+
+TEST(linalg, compound_ATCA_linalg) {
+  Matrix<double> A("A", 16, 16, dense, sparse);   
+  Matrix<double> B("B", 16, 16, dense, dense);
+  Matrix<double> C("C", 16, 16, dense, dense);
+  // Tensor API equivalent
+  Tensor<double> tA("tA", {16,16}, {dense, sparse});
+  Tensor<double> tB("tB", {16,16}, {dense, dense});
+  Tensor<double> tC("tC", {16,16}, {dense, dense});
+
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 16; j++) {
+      C(i, j) = i*j;
+    }
+  }
+
+  for (int i = 0; i < 16; i++) {
+    A(i, i) = i;
+  }
+
+  B = (transpose(A) * C) * A;
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 16; j++) {
+      cout << i << ", " << j << ": " << endl;
+      cout << B(i,j) << endl;
+    }
+  }
+
+  for (int i = 0; i < 16; i++) {
+    for (int j = 0; j < 16; j++) {
+      tC(i, j) = i*j;
+    }
+  }
+  cout << "After insertion into tC" << endl;
+
+  for (int i = 0; i < 16; i++) {
+    tA(i, i) = i;
+  }
+  cout << "After insertion into tA" << endl;
   IndexVar i, j, k, l;
   cout << "Before Tensor Expression" << endl;
   tB(i, j) = (tA(l, i) * tC(l, k)) * tA(k, j);
@@ -360,7 +424,7 @@ TEST(linalg, compound_ATCA) {
 
   cout << tB << endl;
 
-  /* ASSERT_TENSOR_EQ(tB, B); */
+  ASSERT_TENSOR_EQ(tB, B);
 }
 
 TEST(linalg, matrix_constructors) {
